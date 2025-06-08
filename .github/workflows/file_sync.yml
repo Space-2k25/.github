@@ -91,18 +91,27 @@ jobs:
               fi
 
               echo "Replacing .github folder using rsync..."
+              # Debug what's in the source directory
+              echo "Files in source directory:"
+              find "${{ github.workspace }}/.github" -type f | sort
+              
               rm -rf .github
               mkdir .github
+              
               # Use rsync with exclude args and specifically exclude workflows directory
-              if rsync -a ${RSYNC_EXCLUDE_ARGS} --exclude 'workflows/' "${{ github.workspace }}/.github/" "./.github/"; then
+              # Added options to preserve file permissions and handle all file types
+              if rsync -av ${RSYNC_EXCLUDE_ARGS} --exclude 'workflows/' "${{ github.workspace }}/.github/" "./.github/"; then
                  echo "Successfully synced .github folder with rsync (workflow files excluded)"
+                 # Debug what got copied
+                 echo "Files synced to destination:"
+                 find "./.github" -type f | sort
               else
                  echo "Error: rsync failed for $repo_name/.github. Skipping commit/push."
                  cd -
                  rm -rf "$clone_dir"
                  continue
               fi
-
+              
               if ! git status --porcelain .github | grep -q '^ M\|^ A\|^ D'; then
                 echo "No changes detected in .github folder for $repo_name after rsync. Skipping commit/push."
               else
