@@ -93,9 +93,9 @@ jobs:
               echo "Replacing .github folder using rsync..."
               rm -rf .github
               mkdir .github
-              # Use rsync with exclude args
-              if rsync -a ${RSYNC_EXCLUDE_ARGS} "${{ github.workspace }}/.github/" "./.github/"; then
-                 echo "Successfully synced .github folder with rsync"
+              # Use rsync with exclude args and specifically exclude workflows directory
+              if rsync -a ${RSYNC_EXCLUDE_ARGS} --exclude 'workflows/' "${{ github.workspace }}/.github/" "./.github/"; then
+                 echo "Successfully synced .github folder with rsync (workflow files excluded)"
               else
                  echo "Error: rsync failed for $repo_name/.github. Skipping commit/push."
                  cd -
