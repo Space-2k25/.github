@@ -90,18 +90,23 @@ jobs:
                  continue
               fi
 
-              echo "Replacing .github folder using rsync..."
+              echo "Syncing .github folder using rsync..."
               # Debug what's in the source directory
               echo "Files in source directory:"
               find "${{ github.workspace }}/.github" -type f | sort
               
-              rm -rf .github
-              mkdir .github
+              # Instead of removing the entire .github folder, create it if it doesn't exist
+              mkdir -p .github
               
-              # Use rsync with exclude args and specifically exclude workflows directory
-              # Added options to preserve file permissions and handle all file types
-              if rsync -av ${RSYNC_EXCLUDE_ARGS} --exclude 'workflows/' "${{ github.workspace }}/.github/" "./.github/"; then
-                 echo "Successfully synced .github folder with rsync (workflow files excluded)"
+              # Check if target repo has workflows directory to preserve
+              if [ -d ".github/workflows" ]; then
+                echo "Target repo has existing workflows directory - preserving it"
+              fi
+              
+              # Use rsync with exclude args and exclude workflows directory
+              # Don't delete workflows directory in the target repo
+              if rsync -av --delete --exclude 'workflows/' ${RSYNC_EXCLUDE_ARGS} "${{ github.workspace }}/.github/" "./.github/"; then
+                 echo "Successfully synced .github folder with rsync (preserving existing workflows)"
                  # Debug what got copied
                  echo "Files synced to destination:"
                  find "./.github" -type f | sort
