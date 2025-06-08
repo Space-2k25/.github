@@ -1,0 +1,128 @@
+name: Sync .github Folder to All Repos # Keep a descriptive name for clarity in the Actions tab
+
+on:
+  push:
+    branches:
+      - main  # Or the default branch of your .github_private repo
+    paths:
+      - '.github/**' # Trigger only when changes are made inside the .github folder
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Repository (.github_private)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ORG_SYNC_PAT }} # Use PAT for potentially private repo access
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install gh CLI (for listing repos)
+        # gh CLI is usually pre-installed
+        run: |
+          sudo apt-get update
+          sudo apt-get install gh -y
+
+      - name: Prepare rsync exclude arguments
+        id: rsync_excludes
+        run: |
+          EXCLUDE_FILE="${{ github.workspace }}/.github/file_sync.yml" # Ensure this path is correct relative to repo root
+          RSYNC_EXCLUDE_ARGS=""
+
+          if [ -f "$EXCLUDE_FILE" ]; then
+            echo "Using exclusion file: $EXCLUDE_FILE"
+            while IFS= read -r line; do
+              if [[ ! "$line" =~ ^\s*# ]] && [[ -n "$line" ]]; then
+                RSYNC_EXCLUDE_ARGS+=" --exclude '$line'"
+                echo "  Excluding: $line"
+              fi
+            done < "$EXCLUDE_FILE"
+            echo "Generated RSYNC_EXCLUDE_ARGS: $RSYNC_EXCLUDE_ARGS"
+          else
+            echo "No exclusion file '$EXCLUDE_FILE' found. No paths will be excluded."
+          fi
+
+          # Set the output variable
+          echo "rsync_exclude_args=$RSYNC_EXCLUDE_ARGS" >> "$GITHUB_OUTPUT"
+
+
+      - name: Sync .github Folder to Repos
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_SYNC_PAT }}
+          ORG_NAME: Space-2k25 # Hardcoded organization name
+          SOURCE_REPO: ${{ github.event.repository.name }}
+          RSYNC_EXCLUDE_ARGS: ${{ steps.rsync_excludes.outputs.rsync_exclude_args }}
+        run: |
+          echo "Source repo: $ORG_NAME/$SOURCE_REPO"
+          echo "Fetching list of repositories in organization: $ORG_NAME"
+
+          # Use gh CLI to list repos, filter out forks, archived, and the source repo itself
+          # Using the hardcoded ORG_NAME env var
+          REPOS=$(gh repo list "$ORG_NAME" --json name,isFork,isArchived,defaultBranch -q '.[] | select(.isFork == false and .isArchived == false and .name != env.SOURCE_REPO) | "\(.name),\(.defaultBranch)"')
+
+          if [ -z "$REPOS" ]; then
+            echo "No target repositories found after filtering in organization $ORG_NAME."
+            exit 0
+          fi
+
+          echo "Target repositories found:"
+          echo "$REPOS" | while IFS=',' read -r repo_name default_branch; do
+            # Using the hardcoded ORG_NAME env var in the URL
+            repo_url="https://$GITHUB_TOKEN@github.com/$ORG_NAME/$repo_name.git"
+            clone_dir="/tmp/$repo_name"
+
+            echo "--- Syncing $ORG_NAME/$repo_name ---"
+
+            if git clone "$repo_url" "$clone_dir"; then
+              echo "Cloned $repo_name"
+              cd "$clone_dir"
+
+              echo "Checking out default branch: $default_branch"
+              if ! git checkout "$default_branch"; then
+                 echo "Warning: Could not checkout default branch $default_branch for $repo_name. Skipping this repo."
+                 cd -
+                 rm -rf "$clone_dir"
+                 continue
+              fi
+
+              echo "Replacing .github folder using rsync..."
+              rm -rf .github
+              mkdir .github
+              # Use rsync with exclude args
+              if rsync -a ${RSYNC_EXCLUDE_ARGS} "${{ github.workspace }}/.github/" "./.github/"; then
+                 echo "Successfully synced .github folder with rsync"
+              else
+                 echo "Error: rsync failed for $repo_name/.github. Skipping commit/push."
+                 cd -
+                 rm -rf "$clone_dir"
+                 continue
+              fi
+
+              if ! git status --porcelain .github | grep -q '^ M\|^ A\|^ D'; then
+                echo "No changes detected in .github folder for $repo_name after rsync. Skipping commit/push."
+              else
+                echo "Committing and pushing changes..."
+                git add .github
+                git commit -m " chore: Sync .github folder from $SOURCE_REPO"
+                if git push origin "$default_branch"; then
+                  echo "Successfully pushed changes to $repo_name/$default_branch"
+                else
+                  echo "Error pushing changes to $repo_name/$default_branch"
+                fi
+              fi
+
+              cd -
+              rm -rf "$clone_dir"
+
+            else
+              echo "Error cloning $repo_name. Skipping."
+            fi
+             echo "--- Finished sync for $ORG_NAME/$repo_name ---"
+          done
+
+          echo "Sync process completed."
