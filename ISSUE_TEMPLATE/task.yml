@@ -1,9 +1,9 @@
 name: Task 📀
 about: For creating tasks issues
 title: ''
-labels: ''
+labels: []
 projects: ["Space-2k25/3"]
-assignees: ''
+assignees: []
 type: "Task 📀"
 body:
   - type: markdown

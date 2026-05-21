@@ -1,8 +1,8 @@
 name: Hurdle 🚧
 about: For defining hurdles in the issue
 title: ''
-labels: ''
-assignees: ''
+labels: []
+assignees: []
 type: "Hurdle 🚧"
 body:
   - type: markdown

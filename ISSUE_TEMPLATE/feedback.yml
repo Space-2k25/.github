@@ -1,8 +1,8 @@
 name: Feedback 💭
 about: For general feedback from any member
 title: ''
-labels: ''
-assignees: ''
+labels: []
+assignees: []
 type: "Feedback 💭"
 body:
   - type: markdown

@@ -1,8 +1,8 @@
 name: Training 🏋🏻‍♂️
 about: For having training-related tracking
 title: ''
-labels: ''
-assignees: ''
+labels: []
+assignees: []
 type: "Training 🏋🏻‍♂️"
 body:
   - type: markdown

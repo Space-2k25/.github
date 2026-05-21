@@ -1,8 +1,8 @@
 name: Scope 🎯
 about: For ideas or project suggestions for the org
 title: ''
-labels: ''
-assignees: ''
+labels: []
+assignees: []
 type: "Scope 🎯"
 body:
   - type: markdown
