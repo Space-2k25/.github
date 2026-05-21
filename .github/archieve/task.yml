@@ -4,7 +4,7 @@ title: ''
 labels: []
 projects: ["Space-2k25/3"]
 assignees: []
-type: "Task 📀"
+type: ["Task 📀"] 
 body:
   - type: markdown
     attributes:
