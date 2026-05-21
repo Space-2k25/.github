@@ -1,0 +1,21 @@
+name: Feedback 💭
+about: For general feedback from any member
+title: ''
+labels: ''
+assignees: ''
+type: "Feedback 💭"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Objective
+
+        - 
+
+        ### Acceptance Criteria
+
+        - [ ] 
+
+        ### Context
+
+        -

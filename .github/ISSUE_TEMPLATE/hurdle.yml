@@ -1,0 +1,21 @@
+name: Hurdle 🚧
+about: For defining hurdles in the issue
+title: ''
+labels: ''
+assignees: ''
+type: "Hurdle 🚧"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Objective
+
+        - 
+
+        ### Acceptance Criteria
+
+        - [ ] 
+
+        ### Context
+
+        -
